@@ -421,22 +421,16 @@ def predict(image):
     vein_input = np.expand_dims(to_vein_input(processed), 0).astype(np.float32)
 
     if model is not None:
-        input_details = model.get_input_details()
-        output_details = model.get_output_details()
-        for inp in input_details:
-            name = inp["name"].lower()
-            if "rgb" in name:
-                model.set_tensor(inp["index"], rgb_input)
-            elif "vein" in name:
-                model.set_tensor(inp["index"], vein_input)
-        model.invoke()
-        pred = model.get_tensor(output_details[0]["index"])[0]
+        pred = model.predict(
+            [rgb_input, vein_input],
+            verbose=0
+        )[0]
     else:
         # Pseudo-prediction fallback if model file missing during local preview
         np.random.seed(int(np.sum(processed) % 10000))
         pred = np.random.dirichlet(np.ones(len(LABELS)) * 0.5)
         pred[1] = 0.945  # Default to Sambiloto
-
+    
     top_idx = np.argsort(pred)[::-1]
     return [(LABELS[idx], float(pred[idx])) for idx in top_idx[:5]]
 
