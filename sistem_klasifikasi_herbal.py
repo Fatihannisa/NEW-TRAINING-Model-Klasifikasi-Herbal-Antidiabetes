@@ -43,7 +43,6 @@ def load_model():
         return None
     model = tf.keras.models.load_model(model_file)
     return model
-
 model = load_model()
 
 LABELS = [
@@ -421,17 +420,17 @@ def predict(image):
     rgb_input = np.expand_dims(to_rgb_input(processed), 0).astype(np.float32)
     vein_input = np.expand_dims(to_vein_input(processed), 0).astype(np.float32)
 
-    if interpreter is not None:
-        input_details = interpreter.get_input_details()
-        output_details = interpreter.get_output_details()
+    if model is not None:
+        input_details = model.get_input_details()
+        output_details = model.get_output_details()
         for inp in input_details:
             name = inp["name"].lower()
             if "rgb" in name:
-                interpreter.set_tensor(inp["index"], rgb_input)
+                model.set_tensor(inp["index"], rgb_input)
             elif "vein" in name:
-                interpreter.set_tensor(inp["index"], vein_input)
-        interpreter.invoke()
-        pred = interpreter.get_tensor(output_details[0]["index"])[0]
+                model.set_tensor(inp["index"], vein_input)
+        model.invoke()
+        pred = model.get_tensor(output_details[0]["index"])[0]
     else:
         # Pseudo-prediction fallback if model file missing during local preview
         np.random.seed(int(np.sum(processed) % 10000))
