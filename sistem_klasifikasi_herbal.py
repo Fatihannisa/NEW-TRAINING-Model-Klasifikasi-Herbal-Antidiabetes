@@ -36,15 +36,16 @@ bg_session = get_bg_session()
 # LOAD MODEL TFLITE
 # =========================================================
 @st.cache_resource
-def load_model():
-    model_file = "leafnet_dual_branch.keras"
+def load_tflite():
+    model_file = "leafnet_dual_branch.tflite"
     if not os.path.exists(model_file):
         st.warning(f"File model '{model_file}' tidak ditemukan di directory root. Menggunakan simulasi prediksi...")
         return None
-    model = tf.keras.models.load_model(model_file)
-    return model
+    interpreter = tf.lite.Interpreter(model_path=model_file)
+    interpreter.allocate_tensors()
+    return interpreter
 
-model = load_model()
+interpreter = load_tflite()
 
 LABELS = [
     "Acalypha siamensis", "Andrographis paniculata", "Cananga odorata", "Capsicum sp", "Catharanthus roseus",
