@@ -41,11 +41,17 @@ def load_tflite():
     if not os.path.exists(model_file):
         st.warning(f"File model '{model_file}' tidak ditemukan di directory root. Menggunakan simulasi prediksi...")
         return None
+<<<<<<< HEAD
     interpreter = tf.lite.Interpreter(model_path=model_file)
     interpreter.allocate_tensors()
     return interpreter
 
 interpreter = load_tflite()
+=======
+    model = tf.keras.models.load_model(model_file)
+    return model
+model = load_model()
+>>>>>>> 9c3aed5538f08d6d3122a42c7b6d36a120b2a661
 
 LABELS = [
     "Acalypha siamensis", "Andrographis paniculata", "Cananga odorata", "Capsicum sp", "Catharanthus roseus",
@@ -59,7 +65,7 @@ CONFIG = {
     "TARGET_BRIGHTNESS": 110,
     "CLAHE_CLIP": 4.0,
     "CLAHE_TILE": (4, 4),
-    "VEIN_STRENGTH": 1.2
+    "VEIN_STRENGTH": 0.4
 }
 
 # =========================================================
@@ -422,23 +428,17 @@ def predict(image):
     rgb_input = np.expand_dims(to_rgb_input(processed), 0).astype(np.float32)
     vein_input = np.expand_dims(to_vein_input(processed), 0).astype(np.float32)
 
-    if interpreter is not None:
-        input_details = interpreter.get_input_details()
-        output_details = interpreter.get_output_details()
-        for inp in input_details:
-            name = inp["name"].lower()
-            if "rgb" in name:
-                interpreter.set_tensor(inp["index"], rgb_input)
-            elif "vein" in name:
-                interpreter.set_tensor(inp["index"], vein_input)
-        interpreter.invoke()
-        pred = interpreter.get_tensor(output_details[0]["index"])[0]
+    if model is not None:
+        pred = model.predict(
+            [rgb_input, vein_input],
+            verbose=0
+        )[0]
     else:
         # Pseudo-prediction fallback if model file missing during local preview
         np.random.seed(int(np.sum(processed) % 10000))
         pred = np.random.dirichlet(np.ones(len(LABELS)) * 0.5)
         pred[1] = 0.945  # Default to Sambiloto
-
+    
     top_idx = np.argsort(pred)[::-1]
     return [(LABELS[idx], float(pred[idx])) for idx in top_idx[:5]]
 
