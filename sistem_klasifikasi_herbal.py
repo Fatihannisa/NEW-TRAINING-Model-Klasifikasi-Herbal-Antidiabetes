@@ -58,7 +58,7 @@ CONFIG = {
     "TARGET_BRIGHTNESS": 110,
     "CLAHE_CLIP": 4.0,
     "CLAHE_TILE": (4, 4),
-    "VEIN_STRENGTH": 1.2
+    "VEIN_STRENGTH": 0.4
 }
 
 # =========================================================
