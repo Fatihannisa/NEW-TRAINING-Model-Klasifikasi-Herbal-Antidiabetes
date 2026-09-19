@@ -36,16 +36,15 @@ bg_session = get_bg_session()
 # LOAD MODEL TFLITE
 # =========================================================
 @st.cache_resource
-def load_tflite():
-    model_file = "leafnet_dual_branch.tflite"
+def load_model():
+    model_file = "leafnet_dual_branch.keras"
     if not os.path.exists(model_file):
         st.warning(f"File model '{model_file}' tidak ditemukan di directory root. Menggunakan simulasi prediksi...")
         return None
-    interpreter = tf.lite.Interpreter(model_path=model_file)
-    interpreter.allocate_tensors()
-    return interpreter
+    model = tf.keras.models.load_model(model_file)
+    return model
 
-interpreter = load_tflite()
+model = load_model()
 
 LABELS = [
     "Acalypha siamensis", "Andrographis paniculata", "Cananga odorata", "Capsicum sp", "Catharanthus roseus",
@@ -59,7 +58,7 @@ CONFIG = {
     "TARGET_BRIGHTNESS": 110,
     "CLAHE_CLIP": 4.0,
     "CLAHE_TILE": (4, 4),
-    "VEIN_STRENGTH": 0.4
+    "VEIN_STRENGTH": 1.2
 }
 
 # =========================================================
@@ -623,7 +622,7 @@ if st.session_state.page == "upload":
             <h1 style="font-family:'Playfair Display', serif; font-size: 34px; font-weight: 700; margin-top: 2px; margin-bottom: 12px; color: #f0fdf4;">
                 Sistem Identifikasi Daun Herbal Antidiabetes
             </h1>
-            <p style="font-size: 16px; line-height: 1.7; color: #e2e8f0; margin: 0; max-width: 900px;">
+            <p style="font-size: 17px; line-height: 1.7; color: #e2e8f0; margin: 0; max-width: 900px;">
                 DiaHerb dikembangkan untuk membantu mengidentifikasi spesies tanaman herbal antidiabetes berdasarkan citra daun. 
                 Dengan bantuan kecerdasan buatan berbasis <i>Deep Learning</i>, sistem menggunakan model <b>Dual-Branch</b> untuk menganalisis karakteristik tulang daun melalui model <i>LeafNet</i> serta karakteristik visual daun melalui model <i>DenseNet201</i>. 
                 Hasil analisis kedua karakteristik tersebut kemudian digunakan untuk menentukan spesies tanaman yang paling sesuai.
@@ -636,21 +635,13 @@ if st.session_state.page == "upload":
     with col1:
         st.subheader("📷 Unggah Citra Daun")
         uploaded_file = st.file_uploader(
-            "Pilih file foto daun (JPG, PNG, WEBP)",
+            "Pilih file foto daun (JPG, PNG, WEBP) dengan ukuran file maksimal 6 MB",
             type=["jpg", "jpeg", "png", "webp"],
             help="Maksimal ukuran file 6 MB."
         )
 
         if uploaded_file is not None:
             file_size_mb = uploaded_file.size / (1024 * 1024)
-
-            if file_size_mb > 6.0:
-                st.error(
-                    f"⚠️ Ukuran file terlalu besar ({file_size_mb:.2f} MB). "
-                    "Harap unggah foto dengan ukuran maksimal 6 MB agar proses prediksi berjalan lancar."
-                )
-                st.stop()
-
             image = Image.open(uploaded_file)
             st.image(image, caption=f"Preview Gambar yang Diunggah ({file_size_mb:.2f} MB)", width=340)
 
@@ -660,7 +651,7 @@ if st.session_state.page == "upload":
                 st.session_state.page = "result"
                 st.rerun()
             else:
-                st.warning("Silakan pilih atau unggah gambar daun terlebih dahulu.")
+                st.warning("Silakan unggah gambar daun terlebih dahulu.")
 
     with col2:
         sample_paths = [
@@ -678,7 +669,7 @@ if st.session_state.page == "upload":
         st.markdown(f"""
             <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);">
                 <h4 style="margin-top:0; color:#0f172a; font-size:17px; font-weight:700;">📌 Tips Pengambilan Gambar</h4>
-                <ul style="font-size:15px; color:#334155; padding-left:20px; line-height:1.8;">
+                <ul style="font-size:16px; color:#334155; padding-left:20px; line-height:1.8;">
                     <li>Foto <b>1 helai daun</b> saja.</li>
                     <li>Pastikan helai daun berada tepat di tengah frame kamera.</li>
                     <li>Pencahayaan terang agar struktur urat/venasi daun terlihat jelas.</li>
@@ -721,7 +712,7 @@ elif st.session_state.page == "result":
                 <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 320px;">
                     <img src="data:image/png;base64,{img_b64}" style="max-height: 290px; max-width: 100%; object-fit: contain; border-radius: 8px; margin: 0 auto; display: block;">
                 </div>
-                <p style="font-size: 14px; color: #64748b; font-style: italic; margin-top: 14px; margin-bottom: 0; font-weight: 500;">Gambar yang Diunggah</p>
+                <p style="font-size: 15px; color: #64748b; font-style: italic; margin-top: 14px; margin-bottom: 0; font-weight: 500;">Gambar yang Diunggah</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -729,10 +720,10 @@ elif st.session_state.page == "result":
             nama_umum_list = "".join([f"<li>{n}</li>" for n in data["nama_umum"]])
             st.markdown(f"""
                 <div class="custom-card">
-                    <span style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase;">Nama Ilmiah:</span>
+                    <span style="font-size:16px; font-weight:700; color:#64748b; text-transform:uppercase;">Nama Ilmiah:</span>
                     <div class="scientific-name">{pred_name}</div>
-                    <span style="font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase;">Nama Umum:</span>
-                    <ul style="font-size:16px; color:#1e293b; margin-top:6px; padding-left:20px; font-weight: 500; line-height: 1.7;">
+                    <span style="font-size:16px; font-weight:700; color:#64748b; text-transform:uppercase;">Nama Umum:</span>
+                    <ul style="font-size:20px; color:#1e293b; margin-top:6px; padding-left:20px; font-weight: 500; line-height: 1.7;">
                         {nama_umum_list}
                     </ul>
                 </div>
@@ -750,12 +741,12 @@ elif st.session_state.page == "result":
         st.markdown(f"""
             <div class="custom-card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <span style="font-size:14px; font-weight:700; color:#64748b;">STATUS TANAMAN:</span>
+                    <span style="font-size:16px; font-weight:700; color:#64748b;">STATUS TANAMAN:</span>
                     <span class="{status_class}">{status_text}</span>
                 </div>
                 <hr style="border-top:1px solid #f1f5f9; margin:12px 0;">
                 <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                    <span style="font-size:15px; font-weight:600; color:#334155;">Kepercayaan Sistem:</span>
+                    <span style="font-size:16px; font-weight:600; color:#334155;">Kepercayaan Sistem:</span>
                     <span style="font-size:28px; font-weight:800; color:#047857; font-family:monospace;">{conf * 100:.2f}%</span>
                 </div>
             </div>
